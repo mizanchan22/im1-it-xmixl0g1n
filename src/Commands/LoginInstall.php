@@ -34,6 +34,7 @@ class LoginInstall extends BaseCommand
         $this->updateRoutesFile();
         $this->createLoginController();
         $this->createLoginModel();
+        $this->createAdminModule();
 
         CLI::newLine();
         CLI::write("✅ Semua setup berjaya dilaksanakan.", 'green');
@@ -231,6 +232,36 @@ PHP;
 
         copy($source, $target);
         CLI::write("✅ Login_m.php disalin ke app/Models/", 'green');
+    }
+
+    protected function createAdminModule()
+    {
+        $basePath = ROOTPATH . 'Modules/admin/';
+        $folders = ['Config', 'Controllers', 'Models', 'Views'];
+        $files = [
+            'Config/Routes.php'             => realpath(__DIR__ . '/../../../stubs/Modules/admin/Config/Routes.php'),
+            'Controllers/Dashboard_controller.php' => realpath(__DIR__ . '/../../../stubs/Modules/admin/Controllers/Dashboard_controller.php'),
+            'Views/dashboard.php'           => realpath(__DIR__ . '/../../../stubs/Modules/admin/Views/dashboard.php'),
+            'Views/sidebar_layout.php'      => realpath(__DIR__ . '/../../../stubs/Modules/admin/Views/sidebar_layout.php'),
+        ];
+
+        foreach ($folders as $folder) {
+            $path = $basePath . $folder;
+            if (!is_dir($path)) {
+                mkdir($path, 0755, true);
+                CLI::write("📁 Folder dicipta: $path", 'blue');
+            }
+        }
+
+        foreach ($files as $relative => $sourceFile) {
+            $targetFile = $basePath . $relative;
+            if (file_exists($sourceFile)) {
+                copy($sourceFile, $targetFile);
+                CLI::write("📄 File dicipta: $targetFile", 'green');
+            } else {
+                CLI::write("⚠️  File asal tiada (stubs): $relative", 'yellow');
+            }
+        }
     }
 
 }
