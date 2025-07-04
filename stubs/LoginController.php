@@ -44,11 +44,13 @@ class LoginController extends BaseController
                 $p_Katalaluan = trim($this->request->getPost('txt_password'));
                 $encryptpassword = md5($p_Katalaluan);
 
+                // dummy data
                 $dummy_users = [
-                    '820414105456'
+                    // letak ic korg: cth; 9999999999, tapi kena exist dlm ldap
+                    '9999999999'
                 ];
 
-                $dummy_passwords = ['123'];
+                $dummy_passwords = [''];
 
                 if (in_array($p_Pengenalan, $dummy_users)) {
                     $key = array_search($p_Pengenalan, $dummy_users);

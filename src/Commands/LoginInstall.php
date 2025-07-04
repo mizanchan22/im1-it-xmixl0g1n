@@ -36,6 +36,8 @@ class LoginInstall extends BaseCommand
         $this->createLoginModel();
         $this->createAdminModule();
         $this->updateAutoloadPsr4();
+        $this->setupDatabase();
+
 
         CLI::newLine();
         CLI::write("✅ Semua setup berjaya dilaksanakan.", 'green');
@@ -326,5 +328,62 @@ PHP;
         CLI::error("❌ Tidak dapat cari definisi \$psr4 dalam Autoload.php.");
     }
 }
+
+protected function setupDatabase(): void
+{
+    $projectRoot = realpath(FCPATH . '../');
+    $envPath = $projectRoot . DIRECTORY_SEPARATOR . '.env';
+    $envExamplePath = $projectRoot . DIRECTORY_SEPARATOR . 'env';
+
+    // Step 1: Copy .env if not exists
+    if (!file_exists($envPath) && file_exists($envExamplePath)) {
+        copy($envExamplePath, $envPath);
+        CLI::write('✅ env telah disalin sebagai .env', 'green');
+    }
+
+    // Step 2: Modify .env values
+    if (file_exists($envPath)) {
+        $envContent = file_get_contents($envPath);
+
+        $patterns = [
+            '/^CI_ENVIRONMENT\s*=.*$/m'                   => 'CI_ENVIRONMENT = development',
+            '/^#?\s*database\.default\.hostname\s*=.*$/m' => 'database.default.hostname = localhost',
+            '/^#?\s*database\.default\.database\s*=.*$/m' => 'database.default.database = project',
+            '/^#?\s*database\.default\.username\s*=.*$/m' => 'database.default.username = root',
+            '/^#?\s*database\.default\.password\s*=.*$/m' => 'database.default.password =',
+            '/^#?\s*database\.default\.DBDriver\s*=.*$/m' => 'database.default.DBDriver = MySQLi',
+            '/^#?\s*database\.default\.DBPrefix\s*=.*$/m' => 'database.default.DBPrefix =',
+            '/^#?\s*database\.default\.port\s*=.*$/m'     => 'database.default.port = 3306',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $envContent = preg_replace($pattern, $replacement, $envContent);
+        }
+
+        file_put_contents($envPath, $envContent);
+        CLI::write('✅ Fail .env telah dikemaskini dengan konfigurasi database.', 'green');
+    }
+
+    // Step 3: Import SQL from stubs
+    $stubBase = realpath(__DIR__ . '/../../stubs') ?: __DIR__ . '/../../stubs';
+    $sqlFile = $stubBase . DIRECTORY_SEPARATOR . 'project-dummy.sql';
+
+    if (file_exists($sqlFile)) {
+        CLI::write('🔄 Mengimport database dari project-dummy.sql ...', 'yellow');
+
+        // Create DB if not exist
+        $createDb = 'mysql -u root -e "CREATE DATABASE IF NOT EXISTS project"';
+        shell_exec($createDb);
+
+        // Import SQL
+        $cmd = sprintf('mysql -u root project < %s', escapeshellarg($sqlFile));
+        $result = shell_exec($cmd);
+
+        CLI::write('✅ Database project telah diimport dengan jayanya.', 'green');
+    } else {
+        CLI::write('⚠ project-dummy.sql tidak ditemui dalam folder stubs. Langkau import.', 'yellow');
+    }
+}
+
 
 }
