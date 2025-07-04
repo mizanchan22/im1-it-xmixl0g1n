@@ -211,7 +211,19 @@ PHP;
         }
 
         $content = file_get_contents($file);
+        $originalContent = $content;
 
+        // Step 1: Komen baris $routes->get('/', 'Home::index');
+        $pattern = "/^(\s*)\\\$routes->get\(\s*'\/'\s*,\s*'Home::index'\s*\);\s*$/m";
+
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace_callback($pattern, function ($matches) {
+                return $matches[1] . '// ' . trim($matches[0]);
+            }, $content);
+            CLI::write("💡 Baris default home route telah dikomen.", 'cyan');
+        }
+
+        // Step 2: Tambah routes baru jika belum ada
         $lines = [
             "\$routes->get('/', 'LoginController::index');",
             "\$routes->get('login', 'LoginController::index');",
@@ -220,15 +232,13 @@ PHP;
             "foreach(glob(ROOTPATH.'Modules/*/Config/Routes.php') as \$file) { require \$file; }"
         ];
 
-        $added = false;
         foreach ($lines as $line) {
             if (!str_contains($content, $line)) {
                 $content .= "\n" . $line;
-                $added = true;
             }
         }
 
-        if ($added) {
+        if ($content !== $originalContent) {
             file_put_contents($file, $content);
             CLI::write("✅ Routes.php dikemaskini.", 'green');
         } else {
