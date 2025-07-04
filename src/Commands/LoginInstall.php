@@ -37,6 +37,7 @@ class LoginInstall extends BaseCommand
         $this->createAdminModule();
         $this->updateAutoloadPsr4();
         $this->setupDatabase();
+        $this->postDatabaseSetup();
 
 
         CLI::newLine();
@@ -393,6 +394,68 @@ protected function setupDatabase(): void
     } else {
         CLI::write('⚠ project-dummy.sql tidak ditemui dalam folder stubs. Langkau import.', 'yellow');
     }
+}
+
+protected function postDatabaseSetup(): void
+{
+    // Step 1: Prompt for IC
+  $ic = CLI::prompt('Masukkan nombor IC (tanpa dash)', function ($input) {
+    return preg_match('/^\d{12}$/', $input);
+}, 'required');
+
+
+    // Step 2: Replace in LoginController.php
+   $loginControllerTarget = APPPATH . 'Controllers' . DIRECTORY_SEPARATOR . 'LoginController.php';
+
+if (file_exists($loginControllerTarget)) {
+    $content = file_get_contents($loginControllerTarget);
+    $content = preg_replace("/'sini'/", "'$ic'", $content);
+    file_put_contents($loginControllerTarget, $content);
+    CLI::write("✅ IC '$ic' telah dimasukkan dalam LoginController sebenar.", 'green');
+} else {
+    CLI::write("❌ LoginController sebenar tidak ditemui di app/Controllers.", 'red');
+}
+
+
+    // Step 3: Connect to DB dan clone user
+    $mysqli = new \mysqli('localhost', 'root', '', 'project');
+
+    if ($mysqli->connect_error) {
+        CLI::write("❌ Gagal sambung ke database: " . $mysqli->connect_error, 'red');
+        return;
+    }
+
+    $result = $mysqli->query("SELECT * FROM users LIMIT 1");
+
+    if ($result && $user = $result->fetch_assoc()) {
+      $user['user_id'] = $ic;
+
+// Normalize datetime fields (replace 0000-00-00 00:00:00 with now)
+foreach ($user as $key => $value) {
+    if (preg_match('/_date|_created|_updated/i', $key) && $value === '0000-00-00 00:00:00') {
+        $user[$key] = date('Y-m-d H:i:s');
+    }
+}
+
+
+        // Build INSERT query
+        $columns = array_map(function($col) { return "`$col`"; }, array_keys($user));
+        $values = array_map(function($val) use ($mysqli) {
+            return "'" . $mysqli->real_escape_string($val) . "'";
+        }, array_values($user));
+
+        $sql = "INSERT INTO users (" . implode(',', $columns) . ") VALUES (" . implode(',', $values) . ")";
+
+        if ($mysqli->query($sql)) {
+            CLI::write("✅ Data user telah diduplikasi dengan user_id '$ic', sila gunakan '$ic' dan password biarkan kosong untuk login.", 'green');
+        } else {
+            CLI::write("❌ Gagal masukkan user baru: " . $mysqli->error, 'red');
+        }
+    } else {
+        CLI::write("⚠️ Tiada data dalam table 'users' untuk diduplikasi.", 'yellow');
+    }
+
+    $mysqli->close();
 }
 
 

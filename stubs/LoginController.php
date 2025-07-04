@@ -47,7 +47,7 @@ class LoginController extends BaseController
                 // dummy data
                 $dummy_users = [
                     // letak ic korg: cth; 9999999999, tapi kena exist dlm ldap
-                    '9999999999'
+                    'sini'
                 ];
 
                 $dummy_passwords = [''];
