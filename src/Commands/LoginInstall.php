@@ -42,72 +42,74 @@ class LoginInstall extends BaseCommand
         CLI::newLine(2);
     }
 
-   protected function updateBaseController()
-    {
-        $file = APPPATH . 'Controllers/BaseController.php';
+protected function updateBaseController()
+{
+    $file = APPPATH . 'Controllers/BaseController.php';
 
-        if (!file_exists($file)) {
-            CLI::error("❌ BaseController.php tidak dijumpai.");
-            return;
-        }
-
-        $content = file_get_contents($file);
-
-        // Tambah $this->session
-        if (!str_contains($content, '$this->session = \\Config\\Services::session();')) {
-            $pattern = '/public function initController\([^\{]+\{/';
-            $replacement = "$0\n        \$this->session = \\Config\\Services::session();";
-            $content = preg_replace($pattern, $replacement, $content, 1);
-        }
-
-        // Tambah function render() dalam class sebelum penutup }
-        if (!str_contains($content, 'public function render(')) {
-            $renderFunction = <<<PHP
-
-        public function render(\$view, \$data)
-        {
-            \$role = session()->get('s_JenisPengguna');
-
-            if (!\$role) {
-                echo view('errors/html/403', ['message' => 'You do not have permission to access this page.']);
-                exit;
-            }
-
-            \$allowedModules = [
-                'PENTADBIR' => 'admin',
-                'STAF'      => 'staf',
-            ];
-
-            \$uri = service('uri');
-            \$modules = strtolower(\$uri->getSegment(1));
-
-            if (!isset(\$allowedModules[\$role])) {
-                echo view('errors/html/403', ['message' => 'Your role has no assigned module.']);
-                exit;
-            }
-
-            if (\$modules !== \$allowedModules[\$role]) {
-                echo view('errors/html/403', ['message' => 'You do not have permission to access this module.']);
-                exit;
-            }
-
-            \$view_path = "Modules\\\\{\$modules}\\\\Views\\\\";
-            \$sidebar_layout = "Modules\\\\{\$modules}\\\\Views\\\\sidebar_layout";
-
-            echo view('layouts/main_layout', [
-                'view' => \$view_path . \$view,
-                'data' => \$data,
-                'sidebar_layout' => \$sidebar_layout,
-            ]);
-        }
-    PHP;
-            // Masukkan sebelum penutup class
-            $content = preg_replace('/}\s*$/', $renderFunction . "\n}", $content);
-        }
-
-        file_put_contents($file, $content);
-        CLI::write("✅ BaseController dikemaskini.", 'green');
+    if (!file_exists($file)) {
+        CLI::error("❌ BaseController.php tidak dijumpai.");
+        return;
     }
+
+    $content = file_get_contents($file);
+
+    // Tambah $this->session jika belum wujud
+    if (!str_contains($content, '$this->session = \\Config\\Services::session();')) {
+        $pattern = '/public function initController\([^\{]+\)\s*\{/s';
+        $replacement = "$0\n        \$this->session = \\Config\\Services::session();";
+        $content = preg_replace($pattern, $replacement, $content, 1);
+    }
+
+    // Tambah function render() jika belum ada
+    if (!str_contains($content, 'public function render(')) {
+        $renderFunction = <<<'PHP'
+
+    public function render($view, $data)
+    {
+        $role = session()->get('s_JenisPengguna');
+
+        if (!$role) {
+            echo view('errors/html/403', ['message' => 'You do not have permission to access this page.']);
+            exit;
+        }
+
+        $allowedModules = [
+            'PENTADBIR' => 'admin',
+            'STAF'      => 'staf',
+        ];
+
+        $uri = service('uri');
+        $modules = strtolower($uri->getSegment(1));
+
+        if (!isset($allowedModules[$role])) {
+            echo view('errors/html/403', ['message' => 'Your role has no assigned module.']);
+            exit;
+        }
+
+        if ($modules !== $allowedModules[$role]) {
+            echo view('errors/html/403', ['message' => 'You do not have permission to access this module.']);
+            exit;
+        }
+
+        $view_path = 'Modules\\\\' . $modules . '\\\\Views\\\\';
+        $sidebar_layout = 'Modules\\\\' . $modules . '\\\\Views\\\\sidebar_layout';
+
+        echo view('layouts/main_layout', [
+            'view' => $view_path . $view,
+            'data' => $data,
+            'sidebar_layout' => $sidebar_layout,
+        ]);
+    }
+
+PHP;
+
+        // Masukkan sebelum penutup terakhir class
+        $content = preg_replace('/}\s*$/', $renderFunction . "\n}", $content);
+    }
+
+    file_put_contents($file, $content);
+    CLI::write("✅ BaseController dikemaskini.", 'green');
+}
 
  protected function updateDatabaseConfig()
 {
