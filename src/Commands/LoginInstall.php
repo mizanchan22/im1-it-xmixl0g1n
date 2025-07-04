@@ -109,19 +109,34 @@ class LoginInstall extends BaseCommand
         CLI::write("✅ BaseController dikemaskini.", 'green');
     }
 
-    protected function updateDatabaseConfig()
-    {
-        $file = APPPATH . 'Config/Database.php';
+ protected function updateDatabaseConfig()
+{
+    $file = APPPATH . 'Config/Database.php';
 
-        if (!file_exists($file)) {
-            CLI::error("❌ Database.php tidak dijumpai.");
-            return;
-        }
+    if (!file_exists($file)) {
+        CLI::error("❌ Database.php tidak dijumpai.");
+        return;
+    }
 
-        $content = file_get_contents($file);
+    $content = file_get_contents($file);
 
-        if (!str_contains($content, 'public array $project')) {
-            $newDb = <<<PHP
+    // Check jika $project dan $inteam sudah wujud
+    $hasProject = str_contains($content, 'public array $project');
+    $hasInteam  = str_contains($content, 'public array $inteam');
+
+    if ($hasProject && $hasInteam) {
+        CLI::write("ℹ️  Database config sudah wujud, tidak ditambah.", 'yellow');
+        return;
+    }
+
+    // Cuba cari $default untuk insert selepas itu
+    $pattern = '/(public\s+array\s+\$default\s+=\s+\[[\s\S]+?\];)/m';
+
+    if (preg_match($pattern, $content, $matches)) {
+        $newArrays = '';
+
+        if (!$hasProject) {
+            $newArrays .= <<<PHP
 
     public array \$project = [
         'DSN'      => '',
@@ -143,6 +158,11 @@ class LoginInstall extends BaseCommand
         'port'     => 3306,
         'numberNative' => false,
     ];
+PHP;
+        }
+
+        if (!$hasInteam) {
+            $newArrays .= <<<PHP
 
     public array \$inteam = [
         'DSN'      => '',
@@ -165,14 +185,18 @@ class LoginInstall extends BaseCommand
         'numberNative' => false,
     ];
 PHP;
-            $content = preg_replace('/(public array \$default.*?\];)/s', "$1\n\$newDb", $content, 1);
-            file_put_contents($file, $content);
-            CLI::write("✅ Database.php dikemaskini.", 'green');
-        } else {
-            CLI::write("ℹ️  Database config sudah wujud, tidak ditambah.", 'yellow');
         }
-    }
 
+        // Replace original $default + tambah new arrays
+        $updated = preg_replace($pattern, "$1\n$newArrays", $content, 1);
+        file_put_contents($file, $updated);
+
+        if (!$hasProject) CLI::write("✅ Array \$project ditambah.", 'green');
+        if (!$hasInteam)  CLI::write("✅ Array \$inteam ditambah.", 'green');
+    } else {
+        CLI::error("❌ Gagal cari array \$default dalam Database.php.");
+    }
+}
     protected function updateRoutesFile()
     {
         $file = APPPATH . 'Config/Routes.php';
