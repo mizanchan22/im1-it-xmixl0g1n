@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 
 -- Dumping data for table project.users: ~1 rows (approximately)
 INSERT INTO `users` (`id`, `user_id`, `user_nok`, `user_ptj`, `user_stesen`, `user_kodprogram`, `user_password`, `user_salt`, `user_nama`, `user_jawatan`, `user_emel`, `user_telpejabat`, `user_telbimbit`, `user_role`, `user_kontrak`, `user_status`, `user_signature`, `user_date_created`, `user_last_login`) VALUES
-	(1, '990811145963', '19379', '0026', '1001', 'IM1', '701d8d7795931c2bd79ca7512aa8381f', '9d7408', 'mizan', 'pptm', '', '', '', 'PENTADBIR', 'N', 'AKTIF', '', '0000-00-00 00:00:00', '2025-07-04 07:27:04');
+	(1, '000000000000', '00000', '0026', '1001', 'IM1', '701d8d7795931c2bd79ca7512aa8381f', '9d7408', 'testing', 'pptm', '', '', '', 'PENTADBIR', 'N', 'AKTIF', '', '0000-00-00 00:00:00', '2025-07-04 07:27:04');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
