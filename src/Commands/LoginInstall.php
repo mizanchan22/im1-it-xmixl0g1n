@@ -286,7 +286,7 @@ PHP;
         $stubBase = realpath(__DIR__ . '/../../stubs') ?: __DIR__ . '/../../stubs';
         $source = $stubBase . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $stubRelativePath);
 
-        CLI::write("🔎 Check source path: $source", 'cyan');
+        // CLI::write("🔎 Check source path: $source", 'cyan');
 
         if (file_exists($source)) {
             if (!is_dir(dirname($targetPath))) {
@@ -447,7 +447,8 @@ foreach ($user as $key => $value) {
         $sql = "INSERT INTO users (" . implode(',', $columns) . ") VALUES (" . implode(',', $values) . ")";
 
         if ($mysqli->query($sql)) {
-            CLI::write("✅ Data user telah diduplikasi dengan user_id '$ic', sila gunakan '$ic' dan password biarkan kosong untuk login.", 'green');
+            CLI::write("✅ Data user telah diduplikasi dengan user_id '$ic'", 'green');
+            CLI::write("⚠️ Sila gunakan IC '$ic' dan kosongkan ruangan password untuk log masuk di 'http://localhost:8080/'", 'yellow');
         } else {
             CLI::write("❌ Gagal masukkan user baru: " . $mysqli->error, 'red');
         }
