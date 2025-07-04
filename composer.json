@@ -1,0 +1,28 @@
+{
+    "name": "mizanchan22/im1-it-xmixl0g1n",
+    "description": "",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "IM1\\LoginInstaller\\": "src/"
+        }
+    },
+    "_comment": " isi apa-apa je kat bawah ni nama repo git/packgist org tu, cth;  'symfony/console': '^6.0' , simbol ni -> ' sebenarnya double quote.",
+    "require": {
+
+    },
+    "authors": [
+        {
+            "name": "hamizannorwan",
+            "email": "hamizannorwan@gmail.com"
+        }
+    ],
+    "extra": {
+        "codeigniter4": {
+            "commands": {
+                "im1:login": "IM1\\LoginInstaller\\Commands\\LoginInstall"
+            }
+        }
+    }
+}
