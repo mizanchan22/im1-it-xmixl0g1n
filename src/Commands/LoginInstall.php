@@ -41,7 +41,7 @@ class LoginInstall extends BaseCommand
         CLI::newLine(2);
     }
 
-    protected function updateBaseController()
+   protected function updateBaseController()
     {
         $file = APPPATH . 'Controllers/BaseController.php';
 
@@ -53,54 +53,55 @@ class LoginInstall extends BaseCommand
         $content = file_get_contents($file);
 
         // Tambah $this->session
-        if (!str_contains($content, '$this->session = \Config\Services::session();')) {
+        if (!str_contains($content, '$this->session = \\Config\\Services::session();')) {
             $pattern = '/public function initController\([^\{]+\{/';
             $replacement = "$0\n        \$this->session = \\Config\\Services::session();";
             $content = preg_replace($pattern, $replacement, $content, 1);
         }
 
-        // Tambah function render()
+        // Tambah function render() dalam class sebelum penutup }
         if (!str_contains($content, 'public function render(')) {
             $renderFunction = <<<PHP
 
-    public function render(\$view, \$data)
-    {
-        \$role = session()->get('s_JenisPengguna');
+        public function render(\$view, \$data)
+        {
+            \$role = session()->get('s_JenisPengguna');
 
-        if (!\$role) {
-            echo view('errors/html/403', ['message' => 'You do not have permission to access this page.']);
-            exit;
+            if (!\$role) {
+                echo view('errors/html/403', ['message' => 'You do not have permission to access this page.']);
+                exit;
+            }
+
+            \$allowedModules = [
+                'PENTADBIR' => 'admin',
+                'STAF'      => 'staf',
+            ];
+
+            \$uri = service('uri');
+            \$modules = strtolower(\$uri->getSegment(1));
+
+            if (!isset(\$allowedModules[\$role])) {
+                echo view('errors/html/403', ['message' => 'Your role has no assigned module.']);
+                exit;
+            }
+
+            if (\$modules !== \$allowedModules[\$role]) {
+                echo view('errors/html/403', ['message' => 'You do not have permission to access this module.']);
+                exit;
+            }
+
+            \$view_path = "Modules\\\\{\$modules}\\\\Views\\\\";
+            \$sidebar_layout = "Modules\\\\{\$modules}\\\\Views\\\\sidebar_layout";
+
+            echo view('layouts/main_layout', [
+                'view' => \$view_path . \$view,
+                'data' => \$data,
+                'sidebar_layout' => \$sidebar_layout,
+            ]);
         }
-
-        \$allowedModules = [
-            'PENTADBIR' => 'admin',
-            'STAF'      => 'staf',
-        ];
-
-        \$uri = service('uri');
-        \$modules = strtolower(\$uri->getSegment(1));
-
-        if (!isset(\$allowedModules[\$role])) {
-            echo view('errors/html/403', ['message' => 'Your role has no assigned module.']);
-            exit;
-        }
-
-        if (\$modules !== \$allowedModules[\$role]) {
-            echo view('errors/html/403', ['message' => 'You do not have permission to access this module.']);
-            exit;
-        }
-
-        \$view_path = "Modules\\\\{\$modules}\\\\Views\\\\";
-        \$sidebar_layout = "Modules\\\\{\$modules}\\\\Views\\\\sidebar_layout";
-
-        echo view('layouts/main_layout', [
-            'view' => \$view_path . \$view,
-            'data' => \$data,
-            'sidebar_layout' => \$sidebar_layout,
-        ]);
-    }
-PHP;
-            $content .= $renderFunction;
+    PHP;
+            // Masukkan sebelum penutup class
+            $content = preg_replace('/}\s*$/', $renderFunction . "\n}", $content);
         }
 
         file_put_contents($file, $content);
@@ -163,7 +164,7 @@ PHP;
         'numberNative' => false,
     ];
 PHP;
-            $content = preg_replace('/(public array \$default.*?\];)/s', "$1\n$newDb", $content, 1);
+            $content = preg_replace('/(public array \$default.*?\];)/s', "$1\n\$newDb", $content, 1);
             file_put_contents($file, $content);
             CLI::write("✅ Database.php dikemaskini.", 'green');
         } else {
@@ -206,32 +207,14 @@ PHP;
         }
     }
 
-    protected function createLoginController()
+   protected function createLoginController()
     {
-        $source = realpath(__DIR__ . '/../../../stubs/LoginController.php');
-        $target = APPPATH . 'Controllers/LoginController.php';
-
-        if (!file_exists($source)) {
-            CLI::error("❌ Fail LoginController.php tidak ditemui dalam stubs.");
-            return;
-        }
-
-        copy($source, $target);
-        CLI::write("✅ LoginController.php disalin ke app/Controllers/", 'green');
+        $this->copyFileWithLog('LoginController.php', APPPATH . 'Controllers/LoginController.php', 'LoginController.php');
     }
 
     protected function createLoginModel()
     {
-        $source = realpath(__DIR__ . '/../../../stubs/Login_m.php');
-        $target = APPPATH . 'Models/Login_m.php';
-
-        if (!file_exists($source)) {
-            CLI::error("❌ Fail Login_m.php tidak ditemui dalam stubs.");
-            return;
-        }
-
-        copy($source, $target);
-        CLI::write("✅ Login_m.php disalin ke app/Models/", 'green');
+        $this->copyFileWithLog('Login_m.php', APPPATH . 'Models/Login_m.php', 'Login_m.php');
     }
 
     protected function createAdminModule()
@@ -239,10 +222,10 @@ PHP;
         $basePath = ROOTPATH . 'Modules/admin/';
         $folders = ['Config', 'Controllers', 'Models', 'Views'];
         $files = [
-            'Config/Routes.php'             => realpath(__DIR__ . '/../../../stubs/Modules/admin/Config/Routes.php'),
-            'Controllers/Dashboard_controller.php' => realpath(__DIR__ . '/../../../stubs/Modules/admin/Controllers/Dashboard_controller.php'),
-            'Views/dashboard.php'           => realpath(__DIR__ . '/../../../stubs/Modules/admin/Views/dashboard.php'),
-            'Views/sidebar_layout.php'      => realpath(__DIR__ . '/../../../stubs/Modules/admin/Views/sidebar_layout.php'),
+            'Modules/admin/Config/Routes.php'             => $basePath . 'Config/Routes.php',
+            'Modules/admin/Controllers/Dashboard_controller.php' => $basePath . 'Controllers/Dashboard_controller.php',
+            'Modules/admin/Views/dashboard.php'           => $basePath . 'Views/dashboard.php',
+            'Modules/admin/Views/sidebar_layout.php'      => $basePath . 'Views/sidebar_layout.php',
         ];
 
         foreach ($folders as $folder) {
@@ -253,15 +236,26 @@ PHP;
             }
         }
 
-        foreach ($files as $relative => $sourceFile) {
-            $targetFile = $basePath . $relative;
-            if (file_exists($sourceFile)) {
-                copy($sourceFile, $targetFile);
-                CLI::write("📄 File dicipta: $targetFile", 'green');
-            } else {
-                CLI::write("⚠️  File asal tiada (stubs): $relative", 'yellow');
-            }
+        foreach ($files as $stubRelative => $targetPath) {
+            $this->copyFileWithLog($stubRelative, $targetPath, basename($stubRelative));
         }
     }
 
+    protected function copyFileWithLog(string $stubRelativePath, string $targetPath, string $label = '')
+    {
+        $stubBase = realpath(__DIR__ . '/../../stubs') ?: __DIR__ . '/../../stubs';
+        $source = $stubBase . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $stubRelativePath);
+
+        CLI::write("🔎 Check source path: $source", 'cyan');
+
+        if (file_exists($source)) {
+            if (!is_dir(dirname($targetPath))) {
+                mkdir(dirname($targetPath), 0755, true);
+            }
+            copy($source, $targetPath);
+            CLI::write("✅ $label disalin ke $targetPath", 'green');
+        } else {
+            CLI::write("❌ Fail $label tidak ditemui dalam stubs.", 'red');
+        }
+    }
 }
