@@ -35,6 +35,7 @@ class LoginInstall extends BaseCommand
         $this->createLoginController();
         $this->createLoginModel();
         $this->createAdminModule();
+        $this->updateAutoloadPsr4();
 
         CLI::newLine();
         CLI::write("✅ Semua setup berjaya dilaksanakan.", 'green');
@@ -258,4 +259,46 @@ PHP;
             CLI::write("❌ Fail $label tidak ditemui dalam stubs.", 'red');
         }
     }
+
+    protected function updateAutoloadPsr4()
+{
+    $file = APPPATH . 'Config/Autoload.php';
+
+    if (!file_exists($file)) {
+        CLI::error("❌ Autoload.php tidak dijumpai.");
+        return;
+    }
+
+    $content = file_get_contents($file);
+
+    $hasModules = str_contains($content, "'Modules'");
+    $hasConfig  = str_contains($content, "'Config'");
+
+    if ($hasModules && $hasConfig) {
+        CLI::write("ℹ️  PSR-4 Autoload telah dikemaskini sebelum ini.", 'yellow');
+        return;
+    }
+
+    $pattern = '/public\s+\$psr4\s*=\s*\[\s*(.*?)\s*\];/s';
+
+    if (preg_match($pattern, $content, $matches)) {
+        $existing = $matches[1];
+
+        if (!$hasConfig) {
+            $existing .= "\n        'Config'      => APPPATH . 'Config',";
+        }
+        if (!$hasModules) {
+            $existing .= "\n        'Modules'     => ROOTPATH . 'Modules',";
+        }
+
+        $replacement = "public \$psr4 = [\n        $existing\n    ];";
+        $content = preg_replace($pattern, $replacement, $content);
+        file_put_contents($file, $content);
+
+        CLI::write("✅ PSR-4 Autoload dalam Autoload.php telah dikemaskini.", 'green');
+    } else {
+        CLI::error("❌ Tidak dapat cari definisi \$psr4 dalam Autoload.php.");
+    }
+}
+
 }
