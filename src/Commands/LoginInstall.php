@@ -32,6 +32,7 @@ class LoginInstall extends BaseCommand
         $this->updateBaseController();
         $this->updateDatabaseConfig();
         $this->updateRoutesFile();
+        $this->updateAppIndexPage();
         $this->createLoginController();
         $this->createLoginModel();
         $this->createAdminModule();
@@ -461,5 +462,31 @@ foreach ($user as $key => $value) {
     $mysqli->close();
 }
 
+    protected function updateAppIndexPage()
+    {
+        $file = APPPATH . 'Config/App.php';
+
+        if (!file_exists($file)) {
+            CLI::error("❌ App.php tidak dijumpai.");
+            return;
+        }
+
+        $content = file_get_contents($file);
+        $originalContent = $content;
+
+        // Cari line $indexPage dan tukar nilainya sahaja
+        $pattern = '/(public\s+string\s+\$indexPage\s*=\s*)([\'"])(.*?)([\'"])(\s*;)/';
+
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace_callback($pattern, function ($matches) {
+                return $matches[1] . $matches[2] . '' . $matches[4] . $matches[5];
+            }, $content);
+
+            file_put_contents($file, $content);
+            CLI::write("✅ Nilai \$indexPage dalam App.php telah dikosongkan.", 'green');
+        } else {
+            CLI::write("ℹ️  Tidak jumpa baris \$indexPage yang boleh dikemaskini.", 'yellow');
+        }
+    }
 
 }
