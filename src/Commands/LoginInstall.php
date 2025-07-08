@@ -310,8 +310,10 @@ PHP;
 
     $content = file_get_contents($file);
 
-    $hasModules = str_contains($content, "'Modules'");
-    $hasConfig  = str_contains($content, "'Config'");
+      // $hasModules = str_contains($content, "'Modules'");
+    // $hasConfig  = str_contains($content, "'Config'");
+    $hasModules = preg_match("/'Modules'\s*=>/", $content);
+    $hasConfig  = preg_match("/'Config'\s*=>/", $content);
 
     if ($hasModules && $hasConfig) {
         CLI::write("ℹ️  PSR-4 Autoload telah dikemaskini sebelum ini.", 'yellow');
